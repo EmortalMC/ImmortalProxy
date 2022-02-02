@@ -13,7 +13,7 @@ object EventListener {
         val player = e.source as? Player ?: return
 
         if (e.identifier.id != "Immortal") return
-        player.sendMessage(Component.text("Recieved plugin message"))
+        player.sendMessage(Component.text("Received plugin message"))
 
         val channel = e.dataAsDataStream().readLine()
         if (channel != "ServerSend") return
