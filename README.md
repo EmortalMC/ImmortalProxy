@@ -1,1 +1,1 @@
-# ImmortalProxy
+# Divine

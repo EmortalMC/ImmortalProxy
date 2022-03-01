@@ -15,12 +15,12 @@ repositories {
 }
 
 dependencies {
-    implementation("com.velocitypowered:velocity-api:3.0.0")
+    compileOnly("com.velocitypowered:velocity-api:3.0.0")
     kapt("com.velocitypowered:velocity-api:3.0.0")
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib-jdk8"))
 
-    implementation("redis.clients:jedis:4.1.1")
+    //implementation("redis.clients:jedis:4.1.1")
 }
 
 tasks.withType<KotlinCompile> {

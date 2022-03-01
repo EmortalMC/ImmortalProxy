@@ -1,6 +1,5 @@
-package dev.emortal.immortalproxy
+package dev.emortal.divine
 
-import dev.emortal.immortalproxy.GameManager.sendToServer
 import com.velocitypowered.api.command.SimpleCommand
 import com.velocitypowered.api.proxy.Player
 import net.kyori.adventure.text.Component
@@ -12,7 +11,7 @@ object PlayCommand : SimpleCommand {
         val gameName = invocation.arguments()[0]
 
         player.sendMessage(Component.text("Sending to game server $gameName"))
-        player.sendToServer(gameName)
+        //player.sendToServer(gameName)
     }
 
 }

@@ -1,20 +1,16 @@
-package dev.emortal.immortalproxy
+package dev.emortal.divine
 
-import dev.emortal.immortalproxy.ImmortalProxyPlugin.Companion.server
-import com.velocitypowered.api.proxy.Player
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import org.slf4j.LoggerFactory
 
 object GameManager {
     val logger = LoggerFactory.getLogger("dev.emortal.immortalproxy.GameManager")
 
     fun registerGameType(gameType: String, gameTypeSettings: GameTypeSettings) {
-        RedisStorage.pool.sadd("registeredGameTypes", gameType)
-        RedisStorage.pool.set("${gameType}-serverName", gameTypeSettings.serverName)
+        //RedisStorage.pool.sadd("registeredGameTypes", gameType)
+        //RedisStorage.pool.set("${gameType}-serverName", gameTypeSettings.serverName)
     }
 
-    internal fun Player.sendToServer(gameType: String) {
+    /*internal fun Player.sendToServer(gameType: String) {
         val registeredGameTypes = RedisStorage.pool.smembers("registeredGameTypes")
         if (!registeredGameTypes.contains(gameType)) {
             logger.error("Game type not registered")
@@ -39,6 +35,6 @@ object GameManager {
 
             this.sendMessage(Component.text("Failed to join game", NamedTextColor.RED))
         })
-    }
+    }*/
 
 }

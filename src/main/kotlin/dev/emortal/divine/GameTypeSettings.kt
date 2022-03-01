@@ -1,4 +1,4 @@
-package dev.emortal.immortalproxy
+package dev.emortal.divine
 
 data class GameTypeSettings(
     val gameName: String,
