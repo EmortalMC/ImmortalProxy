@@ -1,12 +1,14 @@
 package dev.emortal.divine
 
 import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
 import com.velocitypowered.api.scheduler.ScheduledTask
 import dev.emortal.divine.DivinePlugin.Companion.server
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.minimessage.MiniMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
@@ -34,6 +36,7 @@ class EventListener(val plugin: DivinePlugin) {
 
     @Subscribe
     fun playerPreJoin(e: ServerPreConnectEvent) {
+
         if (e.player.currentServer.isPresent && e.originalServer.serverInfo.name == "limbo") {
             e.result = ServerPreConnectEvent.ServerResult.denied()
             e.player.sendMessage(Component.text("Why would you want to go there?"))
@@ -41,8 +44,16 @@ class EventListener(val plugin: DivinePlugin) {
     }
 
     @Subscribe
+    fun playerLeaveServer(e: DisconnectEvent) {
+        refreshTablist()
+    }
+
+    @Subscribe
     fun playerJoinServer(e: ServerConnectedEvent) {
         //logger.info("Connected!")
+
+        refreshTablist()
+
 
         if (e.server.serverInfo.name == "limbo") {
             e.player.sendMessage(Component.text("It looks like we're experiencing downtime. You will be automatically reconnected when we're back online!", NamedTextColor.RED))
@@ -81,6 +92,25 @@ class EventListener(val plugin: DivinePlugin) {
 
                 }.delay(Duration.ofSeconds(3)).repeat(Duration.ofSeconds(3)).schedule()
             }
+        }
+    }
+
+    fun refreshTablist() {
+        val mini = MiniMessage.miniMessage()
+
+        server.allPlayers.forEach {
+            it.sendPlayerListHeaderAndFooter(
+                Component.text()
+                    .append(Component.text("┌${" ".repeat(50)}", NamedTextColor.GOLD))
+                    .append(Component.text("┐ ", NamedTextColor.LIGHT_PURPLE))
+                    .append(mini.deserialize("\n<gradient:gold:light_purple><bold>EmortalMC"))
+                    .append(Component.text("\n", NamedTextColor.GRAY)),
+                Component.text()
+                    .append(Component.text("\n ", NamedTextColor.GRAY))
+                    .append(Component.text("${server.allPlayers.size} online", NamedTextColor.GRAY))
+                    .append(Component.text("\n└${" ".repeat(50)}", NamedTextColor.LIGHT_PURPLE))
+                    .append(Component.text("┘ ", NamedTextColor.GOLD))
+            )
         }
     }
 
