@@ -21,6 +21,7 @@ object SendCommand : DivineCommand() {
     override fun createBrigadierCommand(): LiteralCommandNode<CommandSource> {
 
         val playNode = LiteralArgumentBuilder.literal<CommandSource>("send")
+            .requires { hasPermission(it) }
             .executes {
                 it.source.sendMessage(Component.text("Usage: /send <player> <game>", NamedTextColor.RED))
                 0
@@ -29,15 +30,15 @@ object SendCommand : DivineCommand() {
 
         val playerArgNode = RequiredArgumentBuilder
             .argument<CommandSource, String>("player", StringArgumentType.string())
+            .requires { hasPermission(it) }
             .executes {
-                it.source.sendMessage(Component.text("Pla"))
-
-                1
+                0
             }
             .build()
 
         val gameArgNode = RequiredArgumentBuilder
             .argument<CommandSource, String>("game", StringArgumentType.string())
+            .requires { hasPermission(it) }
             .suggests { context: CommandContext<CommandSource>, builder: SuggestionsBuilder ->
                 GameManager.serverGameMap.keys.forEach {
                     builder.suggest(it)
@@ -77,11 +78,6 @@ object SendCommand : DivineCommand() {
 
     }
 
-    override fun hasPermission(source: CommandSource): Boolean {
-        // get player otherwise return true as it is the console
-        val player = source as? Player ?: return true
-
-        return player.hasPermission("divine.send")
-    }
+    override fun hasPermission(source: CommandSource) = source.hasPermission("divine.send")
 
 }

@@ -23,6 +23,7 @@ object SendAllCommand : DivineCommand() {
     override fun createBrigadierCommand(): LiteralCommandNode<CommandSource> {
 
         val sendAllNode = LiteralArgumentBuilder.literal<CommandSource>("sendall")
+            .requires { hasPermission(it) }
             .executes {
                 it.source.sendMessage(Component.text("Usage: /sendall <game>", NamedTextColor.RED))
                 0
@@ -31,6 +32,7 @@ object SendAllCommand : DivineCommand() {
 
         val argNode = RequiredArgumentBuilder
             .argument<CommandSource, String>("game", StringArgumentType.string())
+            .requires { hasPermission(it) }
             .suggests { context: CommandContext<CommandSource>, builder: SuggestionsBuilder ->
                 GameManager.serverGameMap.keys.forEach {
                     builder.suggest(it)
@@ -50,9 +52,9 @@ object SendAllCommand : DivineCommand() {
 
                 val joiningActionbar = Component.text("Joining game $gameName ($serverName)", NamedTextColor.GREEN)
                 val joiningMsg = Component.text()
-                    .append(Component.text(username, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
-                    .append(Component.text(" sent every player into ", NamedTextColor.DARK_PURPLE))
-                    .append(Component.text(gameName, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
+                    .append(Component.text(username, NamedTextColor.GOLD))
+                    .append(Component.text(" sent every player into ", NamedTextColor.GOLD))
+                    .append(Component.text(gameName, NamedTextColor.GOLD))
 
                 server.allPlayers.forEach {
                     it.sendMessage(joiningMsg)
@@ -71,11 +73,6 @@ object SendAllCommand : DivineCommand() {
 
     }
 
-    override fun hasPermission(source: CommandSource): Boolean {
-        // get player otherwise return true as it is the console
-        val player = source as? Player ?: return true
-
-        return player.hasPermission("divine.sendall")
-    }
+    override fun hasPermission(source: CommandSource) = source.hasPermission("divine.sendall")
 
 }

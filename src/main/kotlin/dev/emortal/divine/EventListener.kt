@@ -2,15 +2,21 @@ package dev.emortal.divine
 
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.event.connection.PostLoginEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
 import com.velocitypowered.api.scheduler.ScheduledTask
 import dev.emortal.divine.DivinePlugin.Companion.server
+import dev.emortal.divine.utils.RedisStorage
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 class EventListener(val plugin: DivinePlugin) {
 
@@ -36,11 +42,30 @@ class EventListener(val plugin: DivinePlugin) {
 
     @Subscribe
     fun playerPreJoin(e: ServerPreConnectEvent) {
+        RedisStorage.redisson.getBucket<String>("${e.player.uniqueId}-subgame").trySetAsync("lobby", 15, TimeUnit.SECONDS)
 
         if (e.player.currentServer.isPresent && e.originalServer.serverInfo.name == "limbo") {
             e.result = ServerPreConnectEvent.ServerResult.denied()
             e.player.sendMessage(Component.text("Why would you want to go there?"))
         }
+    }
+
+    @Subscribe
+    fun login(e: PostLoginEvent) {
+        val message = Component.text()
+            .append(Component.text("Have you joined our Discord yet?", NamedTextColor.GREEN))
+            .append(Component.text("\nWe post all announcements and votes there, maybe you should join us?\n", NamedTextColor.GRAY))
+            .append(Component.text("Click ", NamedTextColor.GRAY))
+            .append(
+                Component.text("HERE", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD, TextDecoration.UNDERLINED)
+                    .hoverEvent(HoverEvent.showText(Component.text("https://discord.gg/TZyuMSha96", NamedTextColor.GREEN)))
+                    .clickEvent(ClickEvent.openUrl("https://discord.gg/TZyuMSha96"))
+            )
+            .append(Component.text(" to join.", NamedTextColor.GRAY))
+        server.scheduler.buildTask(plugin) {
+            e.player.sendMessage(message)
+            //e.player.playSound(Sound.sound(Key.key("minecraft:entity.villager.celebrate"), Sound.Source.MASTER, 1f, 1f))
+        }.delay(Duration.ofSeconds(5)).schedule()
     }
 
     @Subscribe

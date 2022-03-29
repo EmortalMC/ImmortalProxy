@@ -49,7 +49,6 @@ object PlayCommand : DivineCommand() {
                     return@executes 0
                 }
 
-                player.sendActionBar(Component.text("Joining game $gameName ($serverName)", NamedTextColor.GREEN))
                 player.sendToServer(serverName, gameName)
 
                 1

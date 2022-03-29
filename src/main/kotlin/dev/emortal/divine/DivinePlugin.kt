@@ -7,15 +7,20 @@ import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.Dependency
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.proxy.ProxyServer
-import dev.emortal.divine.commands.PlayCommand
-import dev.emortal.divine.commands.SendAllCommand
-import dev.emortal.divine.commands.SendCommand
+import dev.emortal.divine.commands.*
 import dev.emortal.divine.config.ConfigHelper
 import dev.emortal.divine.config.DivineConfig
 import dev.emortal.divine.utils.RedisStorage.redisson
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.minimessage.MiniMessage
 import net.luckperms.api.LuckPerms
 import java.nio.file.Path
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
+
 
 @Plugin(
     id = "divine",
@@ -29,6 +34,9 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
     @Subscribe
     fun onProxyInitialization(event: ProxyInitializeEvent) {
         divineConfig = ConfigHelper.initConfigFile(configPath, DivineConfig())
+        //luckperms = LuckPermsProvider.get()
+
+        //val mini = MiniMessage.miniMessage()
 
         Companion.server = server
         GameManager.initListener()
@@ -40,6 +48,11 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         PlayCommand.register()
         SendCommand.register()
         SendAllCommand.register()
+        LobbyCommand.register()
+        PingCommand.register()
+        BroadcastCommand.register()
+        DiscordCommand.register()
+        RulesCommand.register()
 
         logger.info("[Divine] has been enabled!")
 
