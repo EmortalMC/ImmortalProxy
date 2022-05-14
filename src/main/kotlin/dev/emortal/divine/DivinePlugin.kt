@@ -35,6 +35,7 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
     fun onProxyInitialization(event: ProxyInitializeEvent) {
         divineConfig = ConfigHelper.initConfigFile(configPath, DivineConfig())
         //luckperms = LuckPermsProvider.get()
+        plugin = this
 
         //val mini = MiniMessage.miniMessage()
 
@@ -46,6 +47,7 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         server.eventManager.register(this, EventListener(this))
 
         PlayCommand.register()
+        SpectateCommand.register()
         SendCommand.register()
         SendAllCommand.register()
         LobbyCommand.register()
@@ -53,6 +55,10 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         BroadcastCommand.register()
         DiscordCommand.register()
         RulesCommand.register()
+        SudoCommand.register()
+        PackerRefreshCommand.register()
+        //PollCommand.register()
+        //VoteCommand.register()
 
         logger.info("[Divine] has been enabled!")
 
@@ -66,6 +72,7 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
     companion object {
         lateinit var server: ProxyServer
         lateinit var luckperms: LuckPerms
+        lateinit var plugin: DivinePlugin
 
         lateinit var divineConfig: DivineConfig
         val configPath = Path.of("./divineconfig.json")

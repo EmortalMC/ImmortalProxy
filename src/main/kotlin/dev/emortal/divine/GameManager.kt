@@ -3,15 +3,13 @@ package dev.emortal.divine
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.server.ServerInfo
 import dev.emortal.divine.DivinePlugin.Companion.server
-import dev.emortal.divine.GameManager.sendToServer
 import dev.emortal.divine.utils.RedisStorage.redisson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.title.Title
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -33,16 +31,12 @@ object GameManager {
             val serverName = args[1].lowercase()
             val serverPort = args[2].toInt()
 
-            logger.info("Registering new server")
+            logger.info("Registering game ${gameName} (${localhostName}:${serverPort})")
 
             if (!server.getServer(serverName).isPresent && server.allServers.any { it.serverInfo.address.port == serverPort }) {
                 logger.error("Port already in use")
                 return@addListenerAsync
             }
-
-            logger.info("Game: ${gameName}")
-            logger.info("Server: ${serverName}")
-            logger.info("Port: ${serverPort}")
 
             serverGameMap[gameName] = serverName
 
@@ -55,42 +49,49 @@ object GameManager {
             val args = msg.split(" ")
             val gameName = args[0].lowercase()
             val uuid = args[1]
+            val spectating = if (args.size > 2) args[2].toBoolean() else false
 
             val serverName = serverGameMap[gameName] ?: return@addListenerAsync
 
-            logger.info("Sending ${uuid} ${gameName} ${serverName}")
+            logger.info("Joining ${uuid} ${gameName} ${serverName} | spectating: ${spectating}")
 
             server.getPlayer(UUID.fromString(uuid)).ifPresent {
-                it.sendToServer(serverName, gameName)
+                it.sendToServer(serverName, gameName, spectating)
             }
         }
 
     }
 
-    internal fun Player.sendToServer(serverName: String, game: String) {
-        if (!serverGameMap.containsKey(game)) {
+    fun Player.sendToServer(serverName: String, game: String, spectate: Boolean = false, playerToSpectate: UUID? = null) {
+        if (!serverGameMap.containsKey(game) && !spectate) {
             logger.error("Game type not registered")
             return
         }
 
-        sendActionBar(Component.text("Joining game $game ($serverName)", NamedTextColor.GREEN))
-
         var foundServer = false
         currentServer.ifPresent {
             if (it.serverInfo.name == serverName) {
+                //showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(4), Duration.ofMillis(500))))
+
                 foundServer = true
                 // Player is already connected to this server, instead publish redis changegame message
-                logger.info("Player already on correct server, sending changegame ${serverName} ${game}")
-                redisson.getTopic("playerpubsub${serverName}").publishAsync("changegame $uniqueId $game")
+                logger.info("Player already on correct server")
+                val topic = redisson.getTopic("playerpubsub${serverName}")
+                if (spectate) {
+                    topic.publishAsync("spectateplayer $uniqueId $playerToSpectate")
+                } else {
+                    topic.publishAsync("changegame $uniqueId $game")
+                }
                 return@ifPresent
             }
         }
         if (foundServer) return
 
         server.getServer(serverName).ifPresentOrElse({ server ->
-            logger.info("${this.username} joining server ${server}, subgame: ${game}...")
+            showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(4), Duration.ofMillis(500))))
+            logger.info("${this.username} joining server ${serverName}, subgame: ${game}...")
 
-            redisson.getBucket<String>("${this.uniqueId}-subgame").setAsync(game, 10, TimeUnit.SECONDS).thenRun {
+            redisson.getBucket<String>("${this.uniqueId}-subgame").setAsync("$game $spectate $playerToSpectate", 10, TimeUnit.SECONDS).thenRun {
                 val future = this.createConnectionRequest(server).connectWithIndication()
 
                 future.thenAccept { successful ->

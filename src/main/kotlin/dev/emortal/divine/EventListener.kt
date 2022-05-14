@@ -1,11 +1,17 @@
 package dev.emortal.divine
 
 import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.event.command.CommandExecuteEvent
+import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.PostLoginEvent
+import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent
+import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
+import com.velocitypowered.api.event.player.TabCompleteEvent
 import com.velocitypowered.api.scheduler.ScheduledTask
+import dev.emortal.divine.DivinePlugin.Companion.plugin
 import dev.emortal.divine.DivinePlugin.Companion.server
 import dev.emortal.divine.utils.RedisStorage
 import net.kyori.adventure.text.Component
@@ -14,31 +20,154 @@ import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.title.Title
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.io.FileInputStream
+import java.net.URL
+import java.security.MessageDigest
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 class EventListener(val plugin: DivinePlugin) {
 
+    companion object {
+        private const val url = "https://github.com/EmortalMC/Resourcepack/releases/download/latest/pack.zip"
+
+        private val resourcePackPrompt = Component.text()
+            .append(Component.text("This resource pack is required.\n", NamedTextColor.RED))
+            .append(Component.text("By clicking accept, this prompt will no longer appear after future logins", NamedTextColor.GRAY))
+            .build()
+
+        var lastRefreshed = 0L
+
+        var hash = refreshSha1()
+            set(value) {
+                resourcePackBuilder = server.createResourcePackBuilder(url)
+                    .setHash(value)
+                    .setPrompt(resourcePackPrompt)
+                    .setShouldForce(true)
+                    .build()
+
+                field = value
+            }
+
+        private var resourcePackBuilder = server.createResourcePackBuilder(url)
+            .setHash(hash)
+            .setPrompt(resourcePackPrompt)
+            .setShouldForce(true)
+            .build()
+
+        fun refreshSha1(): ByteArray {
+            lastRefreshed = System.currentTimeMillis()
+
+            val digest = MessageDigest.getInstance("SHA-1")
+            val fileInputStream = URL(url).openStream()
+            var n = 0
+            val buffer = ByteArray(8192)
+            while (n != -1) {
+                n = fileInputStream.read(buffer)
+                if (n > 0)
+                    digest.update(buffer, 0, n)
+            }
+            fileInputStream.close()
+            return digest.digest()
+        }
+    }
+
+    val libertyBansCommands = listOf(
+        "libertybans",
+        "ipwarn",
+        "ipkick",
+        "banlist",
+        "unmuteip",
+        "alts",
+        "mute",
+        "ipmute",
+        "history",
+        "ban",
+        "warn",
+        "unban",
+        "unbanip",
+        "unwarn",
+        "unwarnip",
+        "ipban",
+        "kick",
+        "accounthistory",
+        "warns",
+        "blame",
+        "unmute",
+        "mutelist",
+        "unbanip",
+    )
+    val luckpermsCommands = listOf(
+        "luckperms",
+        "lp",
+        "lpv",
+        "luckpermsvelocity",
+        "perm",
+        "perms",
+        "permissions",
+        "permission"
+    )
+    @Subscribe
+    fun onPlayerTab(event: PlayerAvailableCommandsEvent) {
+        val iteration = event.rootNode.children.iterator()
+        while (iteration.hasNext()) {
+            val next = iteration.next()
+
+            if (libertyBansCommands.contains(next.name) && !event.player.hasPermission("divine.seelibertybans")) {
+                iteration.remove()
+            }
+            if (luckpermsCommands.contains(next.name) && !event.player.hasPermission("divine.seeluckperms")) {
+                iteration.remove()
+            }
+        }
+
+
+
+    }
+
+    @Subscribe
+    fun onPlayerResourceStatus(event: PlayerResourcePackStatusEvent) {
+        when (event.status) {
+            PlayerResourcePackStatusEvent.Status.DECLINED ->
+                event.player.disconnect(
+                    Component.text(
+                        "Using the resource pack is required. It isn't big and only has to be downloaded once.\nIf the dialog is didn't appear, you need to enable 'Server Resource Packs' in the server settings.",
+                        NamedTextColor.GRAY
+                    )
+                )
+
+            PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD -> {
+                event.player.sendMessage(Component.text(
+                    "The resource pack download failed.\nIf the issue persists, contact a staff member",
+                    NamedTextColor.RED
+                ))
+                if (lastRefreshed + 120000 < System.currentTimeMillis()){
+                    hash = refreshSha1()
+                }
+                server.scheduler.buildTask(plugin) {
+
+                    event.player.sendResourcePackOffer(resourcePackBuilder)
+                }.delay(Duration.ofSeconds(5)).schedule()
+            }
+
+            else -> {
+
+            }
+        }
+    }
+
+
     val logger = LoggerFactory.getLogger("EventListener")
 
-    /*@Subscribe
-    fun pluginMessage(e: PluginMessageEvent) {
-        val player = e.source as? Player ?: return
-
-        if (e.identifier.id != "Immortal") return
-        player.sendMessage(Component.text("Received plugin message"))
-
-        val channel = e.dataAsDataStream().readLine()
-        if (channel != "ServerSend") return
-
-        val server = e.dataAsDataStream().readLine() ?: return
-
-        player.sendMessage(Component.text("Recieved plugin message, sending to ${server}"))
-        player.sendToServer(server)
-    }*/
-
     var limboReconnectTask: ScheduledTask? = null
+
+    @Subscribe
+    fun playerInitialServer(e: PlayerChooseInitialServerEvent) {
+        e.player.sendResourcePackOffer(resourcePackBuilder)
+    }
 
     @Subscribe
     fun playerPreJoin(e: ServerPreConnectEvent) {
@@ -54,7 +183,7 @@ class EventListener(val plugin: DivinePlugin) {
     fun login(e: PostLoginEvent) {
         val message = Component.text()
             .append(Component.text("Have you joined our Discord yet?", NamedTextColor.GREEN))
-            .append(Component.text("\nWe post all announcements and votes there, maybe you should join us?\n", NamedTextColor.GRAY))
+            .append(Component.text("\nWe post all announcements and votes there\n", NamedTextColor.GRAY))
             .append(Component.text("Click ", NamedTextColor.GRAY))
             .append(
                 Component.text("HERE", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD, TextDecoration.UNDERLINED)
@@ -64,6 +193,7 @@ class EventListener(val plugin: DivinePlugin) {
             .append(Component.text(" to join.", NamedTextColor.GRAY))
         server.scheduler.buildTask(plugin) {
             e.player.sendMessage(message)
+
             //e.player.playSound(Sound.sound(Key.key("minecraft:entity.villager.celebrate"), Sound.Source.MASTER, 1f, 1f))
         }.delay(Duration.ofSeconds(5)).schedule()
     }
@@ -133,6 +263,7 @@ class EventListener(val plugin: DivinePlugin) {
                 Component.text()
                     .append(Component.text("\n ", NamedTextColor.GRAY))
                     .append(Component.text("${server.allPlayers.size} online", NamedTextColor.GRAY))
+                    .append(Component.text("\nmc.emortal.dev", NamedTextColor.DARK_GRAY))
                     .append(Component.text("\n└${" ".repeat(50)}", NamedTextColor.LIGHT_PURPLE))
                     .append(Component.text("┘ ", NamedTextColor.GOLD))
             )
