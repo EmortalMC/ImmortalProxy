@@ -10,15 +10,11 @@ import com.velocitypowered.api.proxy.ProxyServer
 import dev.emortal.divine.commands.*
 import dev.emortal.divine.config.ConfigHelper
 import dev.emortal.divine.config.DivineConfig
+import dev.emortal.divine.db.MongoStorage
 import dev.emortal.divine.utils.RedisStorage.redisson
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.minimessage.MiniMessage
 import net.luckperms.api.LuckPerms
+import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import java.nio.file.Path
-import java.time.Duration
-import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 
@@ -27,7 +23,7 @@ import java.util.logging.Logger
     name = "Divine",
     version = "1.0.0",
     description = "Handles proxy business, such as DN or YM",
-    dependencies = [Dependency(id = "luckperms")]
+    dependencies = [Dependency(id = "luckperms"), Dependency(id = "datadependency")]
 )
 class DivinePlugin @Inject constructor(private val server: ProxyServer, private val logger: Logger) {
 
@@ -37,7 +33,12 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         //luckperms = LuckPermsProvider.get()
         plugin = this
 
+        System.setProperty("org.litote.mongo.mapping.service", SerializationClassMappingTypeService::class.qualifiedName!!)
+
         //val mini = MiniMessage.miniMessage()
+
+        mongoStorage = MongoStorage()
+        mongoStorage.init()
 
         Companion.server = server
         GameManager.initListener()
@@ -59,6 +60,8 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         PackerRefreshCommand.register()
         //PollCommand.register()
         //VoteCommand.register()
+        PlaytimeCommand.register()
+        DropPlaytimeCommand.register()
 
         logger.info("[Divine] has been enabled!")
 
@@ -66,6 +69,10 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
 
     @Subscribe
     fun onProxyShutdown(event: ProxyShutdownEvent) {
+        server.allPlayers.forEach {
+            logger.info("Saving uptime for player ${it.username}")
+        }
+
         redisson.shutdown()
     }
 
@@ -73,6 +80,7 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         lateinit var server: ProxyServer
         lateinit var luckperms: LuckPerms
         lateinit var plugin: DivinePlugin
+        lateinit var mongoStorage: MongoStorage
 
         lateinit var divineConfig: DivineConfig
         val configPath = Path.of("./divineconfig.json")

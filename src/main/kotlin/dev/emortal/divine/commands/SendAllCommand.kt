@@ -11,11 +11,8 @@ import com.velocitypowered.api.proxy.Player
 import dev.emortal.divine.DivinePlugin.Companion.server
 import dev.emortal.divine.GameManager
 import dev.emortal.divine.GameManager.sendToServer
-import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
-import javax.naming.Name
 
 
 object SendAllCommand : DivineCommand() {

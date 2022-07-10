@@ -1,6 +1,5 @@
 package dev.emortal.divine.commands
 
-import com.mojang.brigadier.Message
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder

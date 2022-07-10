@@ -1,6 +1,5 @@
 package dev.emortal.divine.commands
 
-import com.mojang.brigadier.Message
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -8,7 +7,6 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import com.mojang.brigadier.tree.LiteralCommandNode
 import com.velocitypowered.api.command.CommandSource
-import com.velocitypowered.api.proxy.Player
 import dev.emortal.divine.DivinePlugin.Companion.server
 import dev.emortal.divine.GameManager
 import dev.emortal.divine.GameManager.sendToServer

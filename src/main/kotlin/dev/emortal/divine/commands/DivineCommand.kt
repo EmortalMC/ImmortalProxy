@@ -2,7 +2,6 @@ package dev.emortal.divine.commands
 
 import com.mojang.brigadier.tree.LiteralCommandNode
 import com.velocitypowered.api.command.BrigadierCommand
-import com.velocitypowered.api.command.Command
 import com.velocitypowered.api.command.CommandSource
 import dev.emortal.divine.DivinePlugin.Companion.server
 

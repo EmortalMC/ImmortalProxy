@@ -5,13 +5,10 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.tree.LiteralCommandNode
 import com.velocitypowered.api.command.CommandSource
-import com.velocitypowered.api.event.EventHandler
 import com.velocitypowered.api.event.player.PlayerChatEvent
 import dev.emortal.divine.DivinePlugin.Companion.server
-import dev.emortal.divine.utils.PermissionUtils.displayName
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 
 object SudoCommand : DivineCommand() {

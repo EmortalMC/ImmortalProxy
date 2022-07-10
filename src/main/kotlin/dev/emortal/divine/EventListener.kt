@@ -1,7 +1,6 @@
 package dev.emortal.divine
 
 import com.velocitypowered.api.event.Subscribe
-import com.velocitypowered.api.event.command.CommandExecuteEvent
 import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.PostLoginEvent
@@ -9,29 +8,34 @@ import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent
 import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
-import com.velocitypowered.api.event.player.TabCompleteEvent
 import com.velocitypowered.api.scheduler.ScheduledTask
-import dev.emortal.divine.DivinePlugin.Companion.plugin
+import dev.emortal.divine.DivinePlugin.Companion.mongoStorage
 import dev.emortal.divine.DivinePlugin.Companion.server
+import dev.emortal.divine.db.MongoStorage
+import dev.emortal.divine.db.PlayerUptime
 import dev.emortal.divine.utils.RedisStorage
+import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.title.Title
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.FileInputStream
 import java.net.URL
 import java.security.MessageDigest
 import java.time.Duration
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class EventListener(val plugin: DivinePlugin) {
 
     companion object {
+        val lastServerMap = ConcurrentHashMap<UUID, String>()
+        val loginTimesMap = ConcurrentHashMap<UUID, Long>()
+
+
         private const val url = "https://github.com/EmortalMC/Resourcepack/releases/download/latest/pack.zip"
 
         private val resourcePackPrompt = Component.text()
@@ -179,8 +183,12 @@ class EventListener(val plugin: DivinePlugin) {
         }
     }
 
+
+
     @Subscribe
     fun login(e: PostLoginEvent) {
+
+
         val message = Component.text()
             .append(Component.text("Have you joined our Discord yet?", NamedTextColor.GREEN))
             .append(Component.text("\nWe post all announcements and votes there\n", NamedTextColor.GRAY))
@@ -198,16 +206,53 @@ class EventListener(val plugin: DivinePlugin) {
         }.delay(Duration.ofSeconds(5)).schedule()
     }
 
+
     @Subscribe
     fun playerLeaveServer(e: DisconnectEvent) {
+        val lastServer = lastServerMap[e.player.uniqueId] ?: return
+        val loginTime = loginTimesMap[e.player.uniqueId]
+        MongoStorage.mongoScope.launch {
+            val playtimeMap = (mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf())
+
+            logger.info(loginTime.toString())
+            if (!playtimeMap.containsKey(lastServer)) playtimeMap[lastServer] = 0
+            playtimeMap[lastServer] = playtimeMap[lastServer]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
+
+            val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
+            mongoStorage.saveUptime(newObj)
+            logger.info("Saved player uptime")
+        }
+
         refreshTablist()
+
+        lastServerMap.remove(e.player.uniqueId)
+        loginTimesMap.remove(e.player.uniqueId)
     }
+
 
     @Subscribe
     fun playerJoinServer(e: ServerConnectedEvent) {
         //logger.info("Connected!")
 
         refreshTablist()
+
+        val loginTime = loginTimesMap[e.player.uniqueId]
+        e.previousServer.ifPresent {
+            MongoStorage.mongoScope.launch {
+                val playtimeMap = mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf()
+
+
+                if (!playtimeMap.containsKey(it.serverInfo.name)) playtimeMap[it.serverInfo.name] = 0
+                playtimeMap[it.serverInfo.name] = playtimeMap[it.serverInfo.name]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
+
+                val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
+                mongoStorage.saveUptime(newObj)
+                logger.info("Saved player uptime")
+            }
+        }
+
+        lastServerMap[e.player.uniqueId] = e.server.serverInfo.name
+        loginTimesMap[e.player.uniqueId] = System.currentTimeMillis()
 
 
         if (e.server.serverInfo.name == "limbo") {
