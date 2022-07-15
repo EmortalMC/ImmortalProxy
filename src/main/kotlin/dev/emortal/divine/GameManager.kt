@@ -88,7 +88,7 @@ object GameManager {
         if (foundServer) return
 
         server.getServer(serverName).ifPresentOrElse({ server ->
-            showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(4), Duration.ofMillis(500))))
+            //showTitle(Title.title(Component.text("\uE00A"), Component.empty(), Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(4), Duration.ofMillis(500))))
             logger.info("${this.username} joining server ${serverName}, subgame: ${game}...")
 
             redisson.getBucket<String>("${this.uniqueId}-subgame").setAsync("$game $spectate $playerToSpectate", 10, TimeUnit.SECONDS).thenRun {
