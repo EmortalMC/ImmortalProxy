@@ -12,7 +12,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 
 
-object SpectateCommand : DivineCommand() {
+object SpectateCommand : DivineCommand("spec") {
 
     override fun createBrigadierCommand(): LiteralCommandNode<CommandSource> {
 
