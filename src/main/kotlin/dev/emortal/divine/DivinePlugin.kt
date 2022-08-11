@@ -57,7 +57,6 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         DiscordCommand.register()
         RulesCommand.register()
         SudoCommand.register()
-        PackerRefreshCommand.register()
         //PollCommand.register()
         //VoteCommand.register()
         PlaytimeCommand.register()

@@ -2,6 +2,7 @@ package dev.emortal.divine
 
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.server.ServerInfo
+import dev.emortal.divine.DivinePlugin.Companion.plugin
 import dev.emortal.divine.DivinePlugin.Companion.server
 import dev.emortal.divine.utils.RedisStorage.redisson
 import net.kyori.adventure.text.Component
@@ -43,6 +44,20 @@ object GameManager {
             if (!server.getServer(serverName).isPresent) {
                 server.registerServer(ServerInfo(serverName, InetSocketAddress(localhostName, serverPort)))
             }
+
+            if (gameName == "lobby") {
+                // Reconnect players in Limbo
+                server.scheduler.buildTask(plugin) {
+                    server.getServer("limbo").ifPresent { limboServer ->
+                        server.getServer("lobby").ifPresent { lobbyServer ->
+                            limboServer.playersConnected.forEach {
+                                it.createConnectionRequest(lobbyServer).fireAndForget()
+                            }
+                        }
+                    }
+                }.delay(Duration.ofSeconds(2)).schedule()
+
+            }
         }
 
         redisson.getTopic("joingame").addListenerAsync(String::class.java) { channel, msg ->
@@ -63,10 +78,10 @@ object GameManager {
     }
 
     fun Player.sendToServer(serverName: String, game: String, spectate: Boolean = false, playerToSpectate: UUID? = null) {
-        if (!serverGameMap.containsKey(game) && !spectate) {
-            logger.error("Game type not registered")
-            return
-        }
+//        if (!serverGameMap.containsKey(game) && !spectate) {
+//            logger.error("Game type not registered")
+//            return
+//        }
 
         var foundServer = false
         currentServer.ifPresent {
