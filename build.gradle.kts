@@ -24,11 +24,11 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("net.kyori:adventure-text-minimessage:4.11.0")
 
-    compileOnly("org.litote.kmongo:kmongo-coroutine-serialization:4.6.1")
-    compileOnly("org.redisson:redisson:3.17.5")
+    compileOnly("org.litote.kmongo:kmongo-coroutine-serialization:4.7.0")
+    compileOnly("org.redisson:redisson:3.17.6")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
 
     compileOnly("net.luckperms:api:5.4")
 }

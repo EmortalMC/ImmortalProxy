@@ -15,6 +15,7 @@ import dev.emortal.divine.utils.RedisStorage.redisson
 import net.luckperms.api.LuckPerms
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 
@@ -47,6 +48,20 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
 
         server.eventManager.register(this, EventListener(this))
 
+        // funy tablist gradient
+        server.scheduler.buildTask(this, object : Runnable {
+            var i = -1f
+
+            override fun run() {
+                i += 0.1f
+                if (i > 1f) {
+                    i -= 2f
+                }
+
+                EventListener.refreshGradient(i)
+            }
+        }).repeat(100, TimeUnit.MILLISECONDS).schedule()
+
         PlayCommand.register()
         SpectateCommand.register()
         SendCommand.register()
@@ -57,10 +72,12 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         DiscordCommand.register()
         RulesCommand.register()
         SudoCommand.register()
+
         //PollCommand.register()
         //VoteCommand.register()
-        PlaytimeCommand.register()
-        DropPlaytimeCommand.register()
+
+        //PlaytimeCommand.register()
+        //DropPlaytimeCommand.register()
 
         logger.info("[Divine] has been enabled!")
 

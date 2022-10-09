@@ -19,6 +19,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.slf4j.LoggerFactory
@@ -32,9 +33,37 @@ import java.util.concurrent.TimeUnit
 class EventListener(val plugin: DivinePlugin) {
 
     companion object {
-        val lastServerMap = ConcurrentHashMap<UUID, String>()
-        val loginTimesMap = ConcurrentHashMap<UUID, Long>()
+//        val lastServerMap = ConcurrentHashMap<UUID, String>()
+//        val loginTimesMap = ConcurrentHashMap<UUID, Long>()
 
+        fun refreshTablist() {
+            val component = Component.text()
+                .append(Component.text("\n ", NamedTextColor.GRAY))
+                .append(Component.text("${server.allPlayers.size} online", NamedTextColor.GRAY))
+                .append(Component.text("\nmc.emortal.dev", TextColor.color(130, 130, 130)))
+                .append(Component.text("\n└${" ".repeat(50)}", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text("┘ ", NamedTextColor.GOLD))
+                .build()
+
+            server.allPlayers.forEach {
+                it.sendPlayerListFooter(component)
+            }
+        }
+
+        fun refreshGradient(gradientPhase: Float) {
+            val mini = MiniMessage.miniMessage()
+
+            val component = Component.text()
+                .append(Component.text("┌${" ".repeat(50)}", NamedTextColor.GOLD))
+                .append(Component.text("┐ ", NamedTextColor.LIGHT_PURPLE))
+                .append(mini.deserialize("\n<gradient:gold:light_purple:${gradientPhase}><bold>EmortalMC"))
+                .append(Component.text("\n${if (gradientPhase > 0f) "▼" else ""}", NamedTextColor.GRAY))
+                .build()
+
+            server.allPlayers.forEach {
+                it.sendPlayerListHeader(component)
+            }
+        }
 
 //        private const val url = "https://github.com/EmortalMC/Resourcepack/releases/download/latest/pack.zip"
 //
@@ -79,31 +108,6 @@ class EventListener(val plugin: DivinePlugin) {
 //        }
     }
 
-    val libertyBansCommands = listOf(
-        "libertybans",
-        "ipwarn",
-        "ipkick",
-        "banlist",
-        "unmuteip",
-        "alts",
-        "mute",
-        "ipmute",
-        "history",
-        "ban",
-        "warn",
-        "unban",
-        "unbanip",
-        "unwarn",
-        "unwarnip",
-        "ipban",
-        "kick",
-        "accounthistory",
-        "warns",
-        "blame",
-        "unmute",
-        "mutelist",
-        "unbanip",
-    )
     val luckpermsCommands = listOf(
         "luckperms",
         "lp",
@@ -120,9 +124,6 @@ class EventListener(val plugin: DivinePlugin) {
         while (iteration.hasNext()) {
             val next = iteration.next()
 
-            if (libertyBansCommands.contains(next.name) && !event.player.hasPermission("divine.seelibertybans")) {
-                iteration.remove()
-            }
             if (luckpermsCommands.contains(next.name) && !event.player.hasPermission("divine.seeluckperms")) {
                 iteration.remove()
             }
@@ -172,9 +173,12 @@ class EventListener(val plugin: DivinePlugin) {
 //    }
 
     @Subscribe
-    fun playerPreJoin(e: ServerPreConnectEvent) {
+    fun playerProxyConnect(e: PlayerChooseInitialServerEvent) {
         RedisStorage.redisson.getBucket<String>("${e.player.uniqueId}-subgame").trySetAsync("lobby", 15, TimeUnit.SECONDS)
+    }
 
+    @Subscribe
+    fun playerPreJoin(e: ServerPreConnectEvent) {
         if (e.player.currentServer.isPresent && e.originalServer.serverInfo.name == "limbo") {
             e.result = ServerPreConnectEvent.ServerResult.denied()
             e.player.sendMessage(Component.text("Why would you want to go there?"))
@@ -199,32 +203,30 @@ class EventListener(val plugin: DivinePlugin) {
             .append(Component.text(" to join.", NamedTextColor.GRAY))
         server.scheduler.buildTask(plugin) {
             e.player.sendMessage(message)
-
-            //e.player.playSound(Sound.sound(Key.key("minecraft:entity.villager.celebrate"), Sound.Source.MASTER, 1f, 1f))
         }.delay(Duration.ofSeconds(5)).schedule()
     }
 
 
     @Subscribe
     fun playerLeaveServer(e: DisconnectEvent) {
-        val lastServer = lastServerMap[e.player.uniqueId] ?: return
-        val loginTime = loginTimesMap[e.player.uniqueId]
-        MongoStorage.mongoScope.launch {
-            val playtimeMap = (mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf())
-
-            logger.info(loginTime.toString())
-            if (!playtimeMap.containsKey(lastServer)) playtimeMap[lastServer] = 0
-            playtimeMap[lastServer] = playtimeMap[lastServer]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
-
-            val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
-            mongoStorage.saveUptime(newObj)
-            logger.info("Saved player uptime")
-        }
-
+//        val lastServer = lastServerMap[e.player.uniqueId] ?: return
+//        val loginTime = loginTimesMap[e.player.uniqueId]
+//        MongoStorage.mongoScope.launch {
+//            val playtimeMap = (mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf())
+//
+//            logger.info(loginTime.toString())
+//            if (!playtimeMap.containsKey(lastServer)) playtimeMap[lastServer] = 0
+//            playtimeMap[lastServer] = playtimeMap[lastServer]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
+//
+//            val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
+//            mongoStorage.saveUptime(newObj)
+//            logger.info("Saved player uptime")
+//        }
+//
         refreshTablist()
-
-        lastServerMap.remove(e.player.uniqueId)
-        loginTimesMap.remove(e.player.uniqueId)
+//
+//        lastServerMap.remove(e.player.uniqueId)
+//        loginTimesMap.remove(e.player.uniqueId)
     }
 
 
@@ -234,48 +236,28 @@ class EventListener(val plugin: DivinePlugin) {
 
         refreshTablist()
 
-        val loginTime = loginTimesMap[e.player.uniqueId]
-        e.previousServer.ifPresent {
-            MongoStorage.mongoScope.launch {
-                val playtimeMap = mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf()
-
-
-                if (!playtimeMap.containsKey(it.serverInfo.name)) playtimeMap[it.serverInfo.name] = 0
-                playtimeMap[it.serverInfo.name] = playtimeMap[it.serverInfo.name]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
-
-                val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
-                mongoStorage.saveUptime(newObj)
-                logger.info("Saved player uptime")
-            }
-        }
-
-        lastServerMap[e.player.uniqueId] = e.server.serverInfo.name
-        loginTimesMap[e.player.uniqueId] = System.currentTimeMillis()
+//        val loginTime = loginTimesMap[e.player.uniqueId]
+//        e.previousServer.ifPresent {
+//            MongoStorage.mongoScope.launch {
+//                val playtimeMap = mongoStorage.getUptime(e.player.uniqueId)?.playtimeMap ?: mutableMapOf()
+//
+//
+//                if (!playtimeMap.containsKey(it.serverInfo.name)) playtimeMap[it.serverInfo.name] = 0
+//                playtimeMap[it.serverInfo.name] = playtimeMap[it.serverInfo.name]!! + (System.currentTimeMillis() - (loginTime ?: System.currentTimeMillis())) / 1000
+//
+//                val newObj = PlayerUptime(e.player.uniqueId.toString(), playtimeMap)
+//                mongoStorage.saveUptime(newObj)
+//                logger.info("Saved player uptime")
+//            }
+//        }
+//
+//        lastServerMap[e.player.uniqueId] = e.server.serverInfo.name
+//        loginTimesMap[e.player.uniqueId] = System.currentTimeMillis()
 
 
         if (e.server.serverInfo.name == "limbo") {
             e.player.sendMessage(Component.text("It looks like we're experiencing downtime. You will be automatically reconnected when we're back online!", NamedTextColor.RED))
 
-        }
-    }
-
-    fun refreshTablist() {
-        val mini = MiniMessage.miniMessage()
-
-        server.allPlayers.forEach {
-            it.sendPlayerListHeaderAndFooter(
-                Component.text()
-                    .append(Component.text("┌${" ".repeat(50)}", NamedTextColor.GOLD))
-                    .append(Component.text("┐ ", NamedTextColor.LIGHT_PURPLE))
-                    .append(mini.deserialize("\n<gradient:gold:light_purple><bold>EmortalMC"))
-                    .append(Component.text("\n", NamedTextColor.GRAY)),
-                Component.text()
-                    .append(Component.text("\n ", NamedTextColor.GRAY))
-                    .append(Component.text("${server.allPlayers.size} online", NamedTextColor.GRAY))
-                    .append(Component.text("\nmc.emortal.dev", NamedTextColor.DARK_GRAY))
-                    .append(Component.text("\n└${" ".repeat(50)}", NamedTextColor.LIGHT_PURPLE))
-                    .append(Component.text("┘ ", NamedTextColor.GOLD))
-            )
         }
     }
 
