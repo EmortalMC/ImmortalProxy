@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.tree.LiteralCommandNode
 import com.velocitypowered.api.command.CommandSource
 import com.velocitypowered.api.proxy.Player
+import dev.emortal.divine.DivinePlugin
 import dev.emortal.divine.GameManager.sendToServer
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -21,7 +22,7 @@ object LobbyCommand : DivineCommand("l", "hub") {
                     return@executes 0
                 }
 
-                player.sendToServer("lobby", "lobby")
+                player.sendToServer(DivinePlugin.divineConfig.defaultServer, DivinePlugin.divineConfig.defaultGame)
 
                 1
             }

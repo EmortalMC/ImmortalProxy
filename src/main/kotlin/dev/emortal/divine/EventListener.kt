@@ -174,7 +174,7 @@ class EventListener(val plugin: DivinePlugin) {
 
     @Subscribe
     fun playerProxyConnect(e: PlayerChooseInitialServerEvent) {
-        RedisStorage.redisson.getBucket<String>("${e.player.uniqueId}-subgame").trySetAsync("lobby", 15, TimeUnit.SECONDS)
+        RedisStorage.redisson.getBucket<String>("${e.player.uniqueId}-subgame").trySetAsync(DivinePlugin.divineConfig.defaultGame, 15, TimeUnit.SECONDS)
     }
 
     @Subscribe

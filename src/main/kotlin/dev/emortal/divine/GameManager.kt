@@ -45,11 +45,11 @@ object GameManager {
                 server.registerServer(ServerInfo(serverName, InetSocketAddress(localhostName, serverPort)))
             }
 
-            if (gameName == "lobby") {
+            if (gameName == DivinePlugin.divineConfig.defaultGame) {
                 // Reconnect players in Limbo
                 server.scheduler.buildTask(plugin) {
                     server.getServer("limbo").ifPresent { limboServer ->
-                        server.getServer("lobby").ifPresent { lobbyServer ->
+                        server.getServer(DivinePlugin.divineConfig.defaultGame).ifPresent { lobbyServer ->
                             limboServer.playersConnected.forEach {
                                 it.createConnectionRequest(lobbyServer).fireAndForget()
                             }
