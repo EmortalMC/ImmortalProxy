@@ -5,16 +5,10 @@ import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.PostLoginEvent
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent
-import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
-import com.velocitypowered.api.scheduler.ScheduledTask
-import dev.emortal.divine.DivinePlugin.Companion.mongoStorage
 import dev.emortal.divine.DivinePlugin.Companion.server
-import dev.emortal.divine.db.MongoStorage
-import dev.emortal.divine.db.PlayerUptime
-import dev.emortal.divine.utils.RedisStorage
-import kotlinx.coroutines.launch
+import dev.emortal.divine.utils.JedisStorage
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -23,11 +17,8 @@ import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.slf4j.LoggerFactory
-import java.net.URL
-import java.security.MessageDigest
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class EventListener(val plugin: DivinePlugin) {
@@ -174,7 +165,7 @@ class EventListener(val plugin: DivinePlugin) {
 
     @Subscribe
     fun playerProxyConnect(e: PlayerChooseInitialServerEvent) {
-        RedisStorage.redisson.getBucket<String>("${e.player.uniqueId}-subgame").trySetAsync(DivinePlugin.divineConfig.defaultGame, 15, TimeUnit.SECONDS)
+        JedisStorage.jedis.setex("${e.player.uniqueId}-subgame", 15, DivinePlugin.divineConfig.defaultGame)
     }
 
     @Subscribe

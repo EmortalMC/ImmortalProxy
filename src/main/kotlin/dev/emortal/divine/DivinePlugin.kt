@@ -11,7 +11,9 @@ import dev.emortal.divine.commands.*
 import dev.emortal.divine.config.ConfigHelper
 import dev.emortal.divine.config.DivineConfig
 import dev.emortal.divine.db.MongoStorage
-import dev.emortal.divine.utils.RedisStorage.redisson
+import dev.emortal.divine.utils.JedisStorage.jedis
+import dev.emortal.divine.utils.JedisStorage.jedisScope
+import kotlinx.coroutines.launch
 import net.luckperms.api.LuckPerms
 import org.litote.kmongo.serialization.SerializationClassMappingTypeService
 import java.nio.file.Path
@@ -44,7 +46,9 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
         Companion.server = server
         GameManager.initListener()
 
-        redisson.getTopic("proxyhello").publishAsync("")
+        jedisScope.launch {
+            jedis.publish("proxyhello", "")
+        }
 
         server.eventManager.register(this, EventListener(this))
 
@@ -85,11 +89,11 @@ class DivinePlugin @Inject constructor(private val server: ProxyServer, private 
 
     @Subscribe
     fun onProxyShutdown(event: ProxyShutdownEvent) {
-        server.allPlayers.forEach {
-            logger.info("Saving uptime for player ${it.username}")
-        }
+//        server.allPlayers.forEach {
+//            logger.info("Saving uptime for player ${it.username}")
+//        }
 
-        redisson.shutdown()
+        jedis.close()
     }
 
     companion object {
